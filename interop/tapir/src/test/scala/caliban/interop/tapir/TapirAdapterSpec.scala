@@ -3,7 +3,7 @@ package caliban.interop.tapir
 import caliban.InputValue.ObjectValue
 import caliban.Value.StringValue
 import caliban._
-import com.github.plokhotnyuk.jsoniter_scala.core.{ readFromString, writeToString, JsonValueCodec }
+import com.github.plokhotnyuk.jsoniter_scala.core.{ readFromString, writeToString, JsonValueCodec, ReaderConfig }
 import com.github.plokhotnyuk.jsoniter_scala.macros.JsonCodecMaker
 import sttp.capabilities.zio.ZioStreams
 import sttp.capabilities.{ Effect, WebSockets }
@@ -14,7 +14,7 @@ import sttp.model._
 import sttp.model.sse.ServerSentEvent
 import sttp.tapir.client.sttp.SttpClientInterpreter
 import sttp.tapir.client.sttp.ws.zio._
-import sttp.tapir.json.jsoniter._
+import MaxCharBufSizeJsonJsoniter._
 import sttp.tapir.model.{ ConnectionInfo, ServerRequest }
 import sttp.tapir.{ AttributeKey, DecodeResult }
 import zio.stream.{ ZPipeline, ZSink, ZStream }
@@ -272,6 +272,13 @@ object TapirAdapterSpec {
               method = Method.GET.method,
               query = """mutation{ deleteCharacter(name: "Amos Burton") }"""
             ).map(r => assertTrue(r.code.code == 400))
+          },
+          test("very long field values in mutations") {
+            val name = "A".repeat(ReaderConfig.maxCharBufSize + 1)
+            runHttpRequest(
+              method = Method.POST.method,
+              query = s"""mutation { deleteCharacter(name: \"$name\") }"""
+            ).map(r => assertTrue(r.code.code == 200))
           }
         )
       ),
